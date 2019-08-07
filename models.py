@@ -10,15 +10,36 @@
 CNN and MLP models
 """
 
-from keras.models import Sequential
+from keras.models import Model
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D
+
 
 def CNN(config):
-    model = Sequential()
+    inputs = Input(shape=config['input_shape'])
+
+    x = Conv2D(64, (3,3), activation='relu', padding='same')(inputs)
+    x = Conv2D(64, (3,3), activation='relu', padding='same')(x)
+    x = MaxPooling2D((2,2))(x)
+
+    distance_prediction = Dense(1, activation='relu')(x)
+    rotation_prediction = Dense(1, activation='relu')(x)
+
+    model = Model(inputs=inputs, outputs=[distance_prediction,
+                                          rotation_prediction])
 
     return model
 
 
 def MLP(config):
-    model = Sequential()
+    inputs = Input(shape=config['input_shape'])
+
+    x = Dense(64, activation='relu')(inputs)
+    x = Dense(64, activation='relu')(x)
+
+    distance_prediction = Dense(1, activation='relu')(x)
+    rotation_prediction = Dense(1, activation='relu')(x)
+
+    model = Model(inputs=inputs, outputs=[distance_prediction,
+                                          rotation_prediction])
 
     return model
