@@ -26,6 +26,7 @@ def CNN(config):
 
     model = Model(inputs=inputs, outputs=[distance_prediction,
                                           rotation_prediction])
+    print(model.summary())
 
     return model
 
@@ -41,5 +42,6 @@ def MLP(config):
 
     model = Model(inputs=inputs, outputs=[distance_prediction,
                                           rotation_prediction])
+    print(model.summary())
 
     return model

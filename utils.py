@@ -135,7 +135,6 @@ class GateDirectoryIterator(Iterator):
             batch_x[i] = x
 
             batch_dist[i,0] = 0.0
-            print(self.labels[index_array[i]])
             batch_dist[i,1] = self.labels[index_array[i]]['distance']
             batch_rot[i,0] = 1.0
             batch_rot[i,1] = self.labels[index_array[i]]['rotation']
