@@ -10,6 +10,11 @@
 Different utility functions used for training and testing.
 """
 
+import os
+import json
+import numpy as np
+
+from keras import backend as K
 from keras.preprocessing import image
 from keras.preprocessing.image import ImageDataGenerator, Iterator
 
@@ -21,10 +26,12 @@ class GateGenerator(ImageDataGenerator):
     flow_from_directory().
     '''
     def flow_from_directory(self, directory, target_size=(225, 300, 1),
-                            batch_size=32, shuffle=True):
+                            batch_size=32, shuffle=True,
+                            ground_truth_available=False):
         return GateDirectoryIterator(self, directory=directory,
                                      target_size=target_size,
-                                     batch_size=batch_size, shuffle=shuffle)
+                                     batch_size=batch_size, shuffle=shuffle,
+                                     ground_truth_available=False)
 
 
 class GateDirectoryIterator(Iterator):
@@ -43,7 +50,7 @@ class GateDirectoryIterator(Iterator):
 
     '''
     def __init__(self, image_data_generator, directory, target_size,
-                 batch_size, shuffle, ground_truth_available=True):
+                 batch_size, shuffle, ground_truth_available=False):
         self.image_data_generator = image_data_generator
         self.directory = directory
         self.target_size = target_size
@@ -60,10 +67,13 @@ class GateDirectoryIterator(Iterator):
         if not ground_truth_available:
             self.labels = None
 
-        for root, subdirs, files in os.walk(datasets_dir):
+        if not os.path.exists(self.directory):
+            raise ValueError("Directory {} does not exist.".format(self.directory))
+
+        for root, subdirs, files in os.walk(self.directory):
             if 'images' in subdirs and 'annotations.json' in files:
-                self.images_dir.append(os.path.join(datasets_dir, root, 'images'))
-                self.annotations_filenames.append(os.path.join(datasets_dir,
+                self.images_dir.append(os.path.join(self.directory, root, 'images'))
+                self.annotations_filenames.append(os.path.join(self.directory,
                                                                root,
                                                                'annotations.json'))
 
@@ -90,7 +100,8 @@ class GateDirectoryIterator(Iterator):
         print("Loaded {} images".format(self.dataset_size))
 
         super(GateDirectoryIterator, self).__init__(self.dataset_size,
-                                                    batch_size, shuffle)
+                                                    batch_size, shuffle,
+                                                    seed=None)
 
 
     def next(self):

@@ -29,10 +29,6 @@ class Trainer:
                 raise Exception(exc)
 
         self.model = self._get_model()
-        self.training_data = GateGenerator(self.config)
-        self.training_data = self.training_data.flow_from_directory(self.config)
-        self.validation_data = GateGenerator(self.config)
-        self.validation_data = self.validation_data.flow_from_directory(self.config)
 
     def _get_model(self):
         model = (models.CNN(self.config) if self.config['model'] is 'CNN'
@@ -45,8 +41,21 @@ class Trainer:
         return model
 
     def train(self):
-        # TODO: Load data generators, calc steps and set callbacks
-        pass
+        training_data_gen = GateGenerator()
+        training_data = training_data_gen.flow_from_directory(
+            self.config['training_dataset_root'],
+            self.config['input_shape'],
+            self.config['batch_size'],
+            shuffle=True,
+            ground_truth_available=True)
+
+        validation_data_gen = GateGenerator()
+        validation_data = validation_data_gen.flow_from_directory(
+            self.config['validation_dataset_root'],
+            self.config['input_shape'],
+            self.config['batch_size'],
+            shuffle=False,
+            ground_truth_available=True)
 
 
 
