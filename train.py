@@ -10,14 +10,15 @@
 Training script for the gate distance and rotation estimator.
 """
 
-import argparse
+import yaml
 import models
 import losses
-import yaml
+import argparse
 
-from utils import GateGenerator
 from keras import backend as K
+from utils import GateGenerator
 from keras.optimizers import Adam
+
 
 class Trainer:
     def __init__(self, config):
@@ -34,14 +35,18 @@ class Trainer:
         self.validation_data = self.validation_data.flow_from_directory(self.config)
 
     def _get_model(self):
-        model = self.config['model'] is 'CNN' ? models.CNN() : models.MLP()
+        model = (models.CNN(self.config) if self.config['model'] is 'CNN'
+                    else models.MLP(self.config))
         adam = Adam()
-        model.compile(optimizer=adam, loss=losses.combined_loss, metrics=['accuracy'])
+        combined_loss = losses.combined_loss(alpha=self.config['alpha'],
+                                             beta=self.config['beta'])
+        model.compile(optimizer=adam, loss=combined_loss, metrics=['accuracy'])
 
         return model
 
     def train(self):
         # TODO: Load data generators, calc steps and set callbacks
+        pass
 
 
 
@@ -50,7 +55,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='''Training script for the gate
                                      distance and rotation detector''')
     parser.add_argument('--config', type=str, help='''Path to the YAML config
-                        file''')
+                        file''', required=True)
     args = parser.parse_args()
-    trainer = Trainer(args)
+    trainer = Trainer(args.config)
     trainer.train()
