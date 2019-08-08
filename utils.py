@@ -94,12 +94,12 @@ class GateDirectoryIterator(Iterator):
                 if ground_truth_available:
                     self.labels.append(annotations)
 
-        self.dataset_size = len(self.filenames)
+        self.samples = len(self.filenames)
         self.labels = np.array(self.labels, dtype=K.floatx())
 
-        print("Loaded {} images".format(self.dataset_size))
+        print("Loaded {} images".format(self.samples))
 
-        super(GateDirectoryIterator, self).__init__(self.dataset_size,
+        super(GateDirectoryIterator, self).__init__(self.samples,
                                                     batch_size, shuffle,
                                                     seed=None)
 

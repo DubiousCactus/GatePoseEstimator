@@ -14,6 +14,7 @@ import yaml
 import models
 import losses
 import argparse
+import numpy as np
 
 from keras import backend as K
 from utils import GateGenerator
@@ -41,21 +42,52 @@ class Trainer:
         return model
 
     def train(self):
-        training_data_gen = GateGenerator()
-        training_data = training_data_gen.flow_from_directory(
+        training_data_gen = GateGenerator(rescale=1./255)
+        training_generator = training_data_gen.flow_from_directory(
             self.config['training_dataset_root'],
             self.config['input_shape'],
             self.config['batch_size'],
             shuffle=True,
             ground_truth_available=True)
 
-        validation_data_gen = GateGenerator()
-        validation_data = validation_data_gen.flow_from_directory(
+        validation_data_gen = GateGenerator(rescale=1./255)
+        validation_generator = validation_data_gen.flow_from_directory(
             self.config['validation_dataset_root'],
             self.config['input_shape'],
             self.config['batch_size'],
             shuffle=False,
             ground_truth_available=True)
+
+        steps_per_epoch = int(np.ceil(training_generator.samples /
+                                      self.config['batch_size']))
+        validation_per_epoch = int(np.ceil(validation_generator.samples /
+                                      self.config['batch_size']))
+
+        early_stopping = EarlyStopping(monitor='val_loss',
+                                       min_delta=0.0,
+                                       patience=10,
+                                       verbose=1)
+
+        reduce_learning_rate = ReduceLROnPlateau(monitor='loss',
+                                                 factor=0.2,
+                                                 patience=6,
+                                                 verbose=1,
+                                                 epsilon=0.001,
+                                                 cooldown=0,
+                                                 min_lr=0.0000001)
+
+        tensor_board = TensorBoard(log_dir=self.log_dir, histogram_freq=0,
+                                   write_graph=True, write_images=True)
+
+        self.model.fit_generator(training_generator,
+                                 epochs=self.config['epochs'],
+                                 steps_per_epoch=steps_per_epoch,
+                                 callbacks=[early_stopping,
+                                            reduce_learning_rate,
+                                            tensor_board],
+                                 validation_data=validation_generator,
+                                 validation_steps=validation_steps,
+                                 initial_epoch=initial_epoch)
 
 
 
