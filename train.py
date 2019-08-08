@@ -19,6 +19,7 @@ import numpy as np
 from keras import backend as K
 from utils import GateGenerator
 from keras.optimizers import Adam
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
 
 
 class Trainer:
@@ -29,6 +30,7 @@ class Trainer:
             except yaml.YAMLError as exc:
                 raise Exception(exc)
 
+        self.log_dir = args.log_dir
         self.model = self._get_model()
 
     def _get_model(self):
@@ -42,6 +44,9 @@ class Trainer:
         return model
 
     def train(self):
+        # TODO: Model restoring
+        initial_epoch = 0
+
         training_data_gen = GateGenerator(rescale=1./255)
         training_generator = training_data_gen.flow_from_directory(
             self.config['training_dataset_root'],
@@ -60,7 +65,7 @@ class Trainer:
 
         steps_per_epoch = int(np.ceil(training_generator.samples /
                                       self.config['batch_size']))
-        validation_per_epoch = int(np.ceil(validation_generator.samples /
+        validation_steps = int(np.ceil(validation_generator.samples /
                                       self.config['batch_size']))
 
         early_stopping = EarlyStopping(monitor='val_loss',
@@ -97,6 +102,8 @@ if __name__ == '__main__':
                                      distance and rotation detector''')
     parser.add_argument('--config', type=str, help='''Path to the YAML config
                         file''', required=True)
+    parser.add_argument('--log-dir', type=str, default='logs', help='''Path to
+                        the logs directory file''')
     args = parser.parse_args()
     trainer = Trainer(args.config)
     trainer.train()

@@ -31,7 +31,7 @@ class GateGenerator(ImageDataGenerator):
         return GateDirectoryIterator(self, directory=directory,
                                      target_size=target_size,
                                      batch_size=batch_size, shuffle=shuffle,
-                                     ground_truth_available=False)
+                                     ground_truth_available=ground_truth_available)
 
 
 class GateDirectoryIterator(Iterator):
@@ -53,7 +53,7 @@ class GateDirectoryIterator(Iterator):
                  batch_size, shuffle, ground_truth_available=False):
         self.image_data_generator = image_data_generator
         self.directory = directory
-        self.target_size = target_size
+        self.target_size = tuple(target_size)
         self.batch_size = batch_size
         self.shuffle = shuffle
         if len(target_size) < 3 and target_size[2] not in [1, 3]:
@@ -64,6 +64,7 @@ class GateDirectoryIterator(Iterator):
         self.annotations_filenames = []
         self.filenames = []
         self.labels = []
+        self.color_mode = 'rgb' if target_size[2] == 3 else 'grayscale'
         if not ground_truth_available:
             self.labels = None
 
@@ -80,22 +81,24 @@ class GateDirectoryIterator(Iterator):
         with open(self.annotations_filenames[0], 'r') as f:
             annotations = json.load(f)
 
-        self.classes_to_labels = annotations['classes']
         for images_dir, annotations_filename in zip(self.images_dir,
                                                     self.annotations_filenames):
             with open(annotations_filename) as f:
                 annotations = json.load(f)
 
-            for i, img_annotations in enumerate(annotations['annotations']):
-                img = img_annotations['image']
-                annotations = img_annotations['annotations']
+            for i, img_annotation in enumerate(annotations['annotations']):
+                img = img_annotation['image']
+                annotations = img_annotation['annotations']
                 self.filenames.append(os.path.join(images_dir, img))
 
                 if ground_truth_available:
-                    self.labels.append(annotations)
+                    if len(annotations) == 0:
+                        self.filenames.pop()
+                    else:
+                        self.labels.append(annotations)
 
         self.samples = len(self.filenames)
-        self.labels = np.array(self.labels, dtype=K.floatx())
+        # self.labels = np.array(self.labels, dtype=K.floatx())
 
         print("Loaded {} images".format(self.samples))
 
@@ -117,19 +120,22 @@ class GateDirectoryIterator(Iterator):
         transformations.
         '''
         current_batch_size = index_array.shape[0]
-        batch_x = np.zeros((current_batch_size,) + self.image_shape,
+        batch_x = np.zeros((current_batch_size,) + self.target_size,
                            dtype=K.floatx())
         batch_dist = np.zeros((current_batch_size, 2, ), dtype=K.floatx())
         batch_rot = np.zeros((current_batch_size, 2, ), dtype=K.floatx())
 
         for i, j in enumerate(index_array):
             x = image.load_img(os.path.join(self.directory, self.filenames[j]),
-                              target_size=self.target_size)
+                              target_size=self.target_size,
+                               color_mode=self.color_mode)
+            x = image.img_to_array(x)
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
 
             batch_dist[i,0] = 0.0
+            print(self.labels[index_array[i]])
             batch_dist[i,1] = self.labels[index_array[i]]['distance']
             batch_rot[i,0] = 1.0
             batch_rot[i,1] = self.labels[index_array[i]]['rotation']
