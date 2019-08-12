@@ -7,41 +7,80 @@
 # Distributed under terms of the MIT license.
 
 """
-CNN and MLP models
+CNN and MLP branches
 """
 
+import tensorflow as tf
+
 from keras.models import Model
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D
+from img_utils import crop_and_pad
+from keras.layers import BatchNormalization, Dropout, Activation
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten, Lambda
 
 
-def CNN(config):
-    inputs = Input(shape=config['input_shape'])
+class GateEstimator:
+    @staticmethod
+    def build_rotation_branch(inputs, bbox_inputs, final_act='relu', chan_dim=-1):
+        x = Lambda(
+            lambda img, xmin, ymin, xmax, ymax:
+                crop_and_pad(img, (xmin, ymin), (xmax, ymax)),
+            arguments={
+                'xmin': bbox_inputs[0],
+                'ymin': bbox_inputs[1],
+                'xmax': bbox_inputs[2],
+                'ymax': bbox_inputs[3]
+            })
+        x = Conv2D(16, (3,3), padding="same")(inputs)
+        x = Activation('relu')(x)
+        x = BatchNormalization(axis=chan_dim)(x)
+        x = MaxPooling2D(pool_size=(3, 3))(x)
+        x = Dropout(0.25)(x)
 
-    x = Conv2D(64, (3,3), activation='relu', padding='same')(inputs)
-    x = Conv2D(64, (3,3), activation='relu', padding='same')(x)
-    x = MaxPooling2D((2,2))(x)
+        x = Conv2D(32, (3,3), padding='same')(x)
+        x = Activation('relu')(x)
+        x = BatchNormalization(axis=chan_dim)(x)
+        x = Conv2D(64, (3,3), padding='same')(x)
+        x = Activation('relu')(x)
+        x = BatchNormalization(axis=chan_dim)(x)
+        x = MaxPooling2D(pool_size=(2,2))(x)
+        x = Dropout(0.25)(x)
 
-    distance_prediction = Dense(1, activation='relu')(x)
-    rotation_prediction = Dense(1, activation='relu')(x)
+        x = Flatten()(x)
+        x = Dense(256)(x)
+        x = Activation('relu')(x)
+        x = BatchNormalization()(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation(final_act, name='rotation_output')(x)
 
-    model = Model(inputs=inputs, outputs=[distance_prediction,
-                                          rotation_prediction])
-    print(model.summary())
+        return x
 
-    return model
+    '''
+    Use only the bounding box coordinates as input for an MLP for the
+    distance estimation.
+    '''
+    @staticmethod
+    def build_distance_branch(inputs, final_act='relu', chan_dim=-1):
+        x = Dense(128, activation='relu')(inputs)
+        x = Dense(64, activation='relu')(x)
+        x = Dense(16, activation='relu')(x)
+        x = Dropout(0.5)(x)
+        x = Dense(1)(x)
+        x = Activation(final_act, name='distance_output')(x)
 
+        return x
 
-def MLP(config):
-    inputs = Input(shape=config['input_shape'])
+    @staticmethod
+    def build(shape, final_act='relu'):
+        img_input = Input(shape=shape, name='img_input')
+        bbox_input = Input(shape=(4,), name='bbox_input')
+        distance_branch = GateEstimator.build_distance_branch(bbox_input)
+        rotation_branch = GateEstimator.build_rotation_branch(img_input,
+                                                              bbox_input)
 
-    x = Dense(64, activation='relu')(inputs)
-    x = Dense(64, activation='relu')(x)
+        model = Model(inputs=[img_input, bbox_input],
+                      outputs=[distance_branch, rotation_branch],
+                     name='GateEstimator')
+        print(model.summary())
 
-    distance_prediction = Dense(1, activation='relu')(x)
-    rotation_prediction = Dense(1, activation='relu')(x)
-
-    model = Model(inputs=inputs, outputs=[distance_prediction,
-                                          rotation_prediction])
-    print(model.summary())
-
-    return model
+        return model

@@ -89,16 +89,15 @@ class GateDirectoryIterator(Iterator):
             for i, img_annotation in enumerate(annotations['annotations']):
                 img = img_annotation['image']
                 annotations = img_annotation['annotations']
-                self.filenames.append(os.path.join(images_dir, img))
-
-                if ground_truth_available:
-                    if len(annotations) == 0:
-                        self.filenames.pop()
-                    else:
-                        self.labels.append(annotations)
+                for bbox in annotations:
+                    if bbox['class_id'] in [1, 2]:
+                        self.filenames.append(os.path.join(images_dir, img))
+                        if ground_truth_available:
+                            self.labels.append(bbox)
 
         self.samples = len(self.filenames)
-        # self.labels = np.array(self.labels, dtype=K.floatx())
+
+        assert self.samples > 0, "Empty dataset!"
 
         print("Loaded {} images".format(self.samples))
 
@@ -114,16 +113,18 @@ class GateDirectoryIterator(Iterator):
         # be done in parallel
         return self._get_batches_of_transformed_samples(index_array)
 
+
     def _get_batches_of_transformed_samples(self, index_array):
         '''
         Fetches the next batch of images and labels, and applies
         transformations.
         '''
         current_batch_size = index_array.shape[0]
-        batch_x = np.zeros((current_batch_size,) + self.target_size,
+        batch_x1 = np.empty((current_batch_size,) + self.target_size,
                            dtype=K.floatx())
-        batch_dist = np.zeros((current_batch_size, 2, ), dtype=K.floatx())
-        batch_rot = np.zeros((current_batch_size, 2, ), dtype=K.floatx())
+        batch_x2 = np.empty((current_batch_size, 4,), dtype=K.floatx())
+        batch_dist = np.empty((current_batch_size, 1,), dtype=K.floatx())
+        batch_rot = np.empty((current_batch_size, 1,), dtype=K.floatx())
 
         for i, j in enumerate(index_array):
             x = image.load_img(os.path.join(self.directory, self.filenames[j]),
@@ -132,11 +133,16 @@ class GateDirectoryIterator(Iterator):
             x = image.img_to_array(x)
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
-            batch_x[i] = x
 
-            batch_dist[i,0] = 0.0
-            batch_dist[i,1] = self.labels[index_array[i]]['distance']
-            batch_rot[i,0] = 1.0
-            batch_rot[i,1] = self.labels[index_array[i]]['rotation']
+            batch_x1[i] = x
+            batch_x2[i] = np.array([
+                self.labels[index_array[i]]['xmin'],
+                self.labels[index_array[i]]['ymin'],
+                self.labels[index_array[i]]['xmax'],
+                self.labels[index_array[i]]['ymax'],
+            ])
+            batch_dist[i] = self.labels[index_array[i]]['distance']
+            batch_rot[i] = self.labels[index_array[i]]['rotation']
 
-        return batch_x, [batch_dist, batch_rot]
+        return ({'img_input': batch_x1, 'bbox_input': batch_x2},
+               {'distance_output': batch_dist, 'rotation_output': batch_rot})

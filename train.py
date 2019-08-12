@@ -18,6 +18,7 @@ import numpy as np
 
 from keras import backend as K
 from utils import GateGenerator
+from models import GateEstimator
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
 
@@ -34,12 +35,20 @@ class Trainer:
         self.model = self._get_model()
 
     def _get_model(self):
-        model = (models.CNN(self.config) if self.config['model'] is 'CNN'
-                    else models.MLP(self.config))
+        # model = (models.CNN(self.config) if self.config['model'] is 'CNN'
+                    # else models.MLP(self.config))
+        model = GateEstimator.build(self.config['input_shape'])
         adam = Adam()
-        combined_loss = losses.combined_loss(alpha=self.config['alpha'],
-                                             beta=self.config['beta'])
-        model.compile(optimizer=adam, loss=combined_loss, metrics=['accuracy'])
+        losses = {
+            'distance_output': 'mean_squared_error',
+            'rotation_output': 'mean_squared_error'
+        }
+        loss_weights = {
+            'distance_output': 0.5,
+            'rotation_output': 1.0
+        }
+        model.compile(optimizer=adam, loss=losses, loss_weights=loss_weights,
+                      metrics=['accuracy'])
 
         return model
 
