@@ -20,16 +20,7 @@ from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten, Lambda
 
 class GateEstimator:
     @staticmethod
-    def build_rotation_branch(inputs, bbox_inputs, final_act='relu', chan_dim=-1):
-        x = Lambda(
-            lambda img, xmin, ymin, xmax, ymax:
-                crop_and_pad(img, (xmin, ymin), (xmax, ymax)),
-            arguments={
-                'xmin': bbox_inputs[0],
-                'ymin': bbox_inputs[1],
-                'xmax': bbox_inputs[2],
-                'ymax': bbox_inputs[3]
-            })
+    def build_rotation_branch(inputs, final_act='relu', chan_dim=-1):
         x = Conv2D(16, (3,3), padding="same")(inputs)
         x = Activation('relu')(x)
         x = BatchNormalization(axis=chan_dim)(x)
@@ -75,8 +66,7 @@ class GateEstimator:
         img_input = Input(shape=shape, name='img_input')
         bbox_input = Input(shape=(4,), name='bbox_input')
         distance_branch = GateEstimator.build_distance_branch(bbox_input)
-        rotation_branch = GateEstimator.build_rotation_branch(img_input,
-                                                              bbox_input)
+        rotation_branch = GateEstimator.build_rotation_branch(img_input)
 
         model = Model(inputs=[img_input, bbox_input],
                       outputs=[distance_branch, rotation_branch],

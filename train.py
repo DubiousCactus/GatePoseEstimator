@@ -35,8 +35,6 @@ class Trainer:
         self.model = self._get_model()
 
     def _get_model(self):
-        # model = (models.CNN(self.config) if self.config['model'] is 'CNN'
-                    # else models.MLP(self.config))
         model = GateEstimator.build(self.config['input_shape'])
         adam = Adam()
         losses = {
@@ -59,6 +57,7 @@ class Trainer:
         training_data_gen = GateGenerator(rescale=1./255)
         training_generator = training_data_gen.flow_from_directory(
             self.config['training_dataset_root'],
+            self.config['image_shape'],
             self.config['input_shape'],
             self.config['batch_size'],
             shuffle=True,
@@ -67,6 +66,7 @@ class Trainer:
         validation_data_gen = GateGenerator(rescale=1./255)
         validation_generator = validation_data_gen.flow_from_directory(
             self.config['validation_dataset_root'],
+            self.config['image_shape'],
             self.config['input_shape'],
             self.config['batch_size'],
             shuffle=False,
