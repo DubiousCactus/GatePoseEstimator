@@ -12,7 +12,6 @@ Training script for the gate distance and rotation estimator.
 
 import yaml
 import models
-import losses
 import argparse
 import numpy as np
 

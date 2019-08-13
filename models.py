@@ -40,6 +40,8 @@ class GatePoseEstimator:
         x = Dense(256)(x)
         x = Activation('relu')(x)
         x = BatchNormalization()(x)
+        x = Dense(16)(x)
+        x = Activation('relu')(x)
         x = Dropout(0.5)(x)
         x = Dense(1)(x)
         x = Activation(final_act, name='rotation_output')(x)
@@ -55,7 +57,7 @@ class GatePoseEstimator:
         x = Dense(64, activation='relu')(inputs)
         x = Dense(32, activation='relu')(x)
         x = Dense(16, activation='relu')(x)
-        # x = Dropout(0.5)(x)
+        x = Dropout(0.5)(x)
         x = Dense(1)(x)
         x = Activation(final_act, name='distance_output')(x)
 
