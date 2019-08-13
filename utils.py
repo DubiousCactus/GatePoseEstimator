@@ -20,7 +20,7 @@ from keras.preprocessing import image
 from keras.preprocessing.image import ImageDataGenerator, Iterator
 
 
-class GateGenerator(ImageDataGenerator):
+class GatePoseGenerator(ImageDataGenerator):
     '''
     Generates batches of images and labels with on-the-go augmentation.
     Extens the ImageDataGenerator from Keras, while only overriding
@@ -30,14 +30,14 @@ class GateGenerator(ImageDataGenerator):
                             target_size=(225, 300, 1),
                             batch_size=32, shuffle=True,
                             ground_truth_available=False):
-        return GateDirectoryIterator(self, directory=directory,
+        return GatePoseDirectoryIterator(self, directory=directory,
                                      base_size=base_size,
                                      target_size=target_size,
                                      batch_size=batch_size, shuffle=shuffle,
                                      ground_truth_available=ground_truth_available)
 
 
-class GateDirectoryIterator(Iterator):
+class GatePoseDirectoryIterator(Iterator):
     '''
     Parses a directory of images and labels, assuming the following folder
     structure:
@@ -112,7 +112,7 @@ class GateDirectoryIterator(Iterator):
 
         print("Loaded {} images".format(self.samples))
 
-        super(GateDirectoryIterator, self).__init__(self.samples,
+        super(GatePoseDirectoryIterator, self).__init__(self.samples,
                                                     batch_size, shuffle,
                                                     seed=None)
 

@@ -1,4 +1,4 @@
-# Gate Estimator
+# Gate Pose Estimator
 
 Simple 2-branches neural network deisgned to estimate the distance of a drone
 racing gate, given its 2D bounding box coordinates, and its rotation with

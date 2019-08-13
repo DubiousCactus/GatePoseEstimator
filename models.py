@@ -18,7 +18,7 @@ from keras.layers import BatchNormalization, Dropout, Activation
 from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten, Lambda
 
 
-class GateEstimator:
+class GatePoseEstimator:
     @staticmethod
     def build_rotation_branch(inputs, final_act='relu', chan_dim=-1):
         x = Conv2D(16, (3,3), padding="same")(inputs)
@@ -65,12 +65,12 @@ class GateEstimator:
     def build(shape, final_act='relu'):
         img_input = Input(shape=shape, name='img_input')
         bbox_input = Input(shape=(4,), name='bbox_input')
-        distance_branch = GateEstimator.build_distance_branch(bbox_input)
-        rotation_branch = GateEstimator.build_rotation_branch(img_input)
+        distance_branch = GatePoseEstimator.build_distance_branch(bbox_input)
+        rotation_branch = GatePoseEstimator.build_rotation_branch(img_input)
 
         model = Model(inputs=[img_input, bbox_input],
                       outputs=[distance_branch, rotation_branch],
-                     name='GateEstimator')
+                     name='GatePoseEstimator')
         print(model.summary())
 
         return model

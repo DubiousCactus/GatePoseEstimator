@@ -17,8 +17,8 @@ import argparse
 import numpy as np
 
 from keras import backend as K
-from utils import GateGenerator
-from models import GateEstimator
+from utils import GatePoseGenerator
+from models import GatePoseEstimator
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
 
@@ -35,7 +35,7 @@ class Trainer:
         self.model = self._get_model()
 
     def _get_model(self):
-        model = GateEstimator.build(self.config['input_shape'])
+        model = GatePoseEstimator.build(self.config['input_shape'])
         adam = Adam()
         losses = {
             'distance_output': 'mean_squared_error',
@@ -54,7 +54,7 @@ class Trainer:
         # TODO: Model restoring
         initial_epoch = 0
 
-        training_data_gen = GateGenerator(rescale=1./255)
+        training_data_gen = GatePoseGenerator(rescale=1./255)
         training_generator = training_data_gen.flow_from_directory(
             self.config['training_dataset_root'],
             self.config['image_shape'],
@@ -63,7 +63,7 @@ class Trainer:
             shuffle=True,
             ground_truth_available=True)
 
-        validation_data_gen = GateGenerator(rescale=1./255)
+        validation_data_gen = GatePoseGenerator(rescale=1./255)
         validation_generator = validation_data_gen.flow_from_directory(
             self.config['validation_dataset_root'],
             self.config['image_shape'],
