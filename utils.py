@@ -133,8 +133,7 @@ class GateDirectoryIterator(Iterator):
         transformations.
         '''
         current_batch_size = index_array.shape[0]
-        batch_x1 = np.empty((current_batch_size,) + self.target_size,
-                           dtype=K.floatx())
+        batch_x1 = np.empty((current_batch_size,) + self.target_size, dtype=K.floatx())
         batch_x2 = np.empty((current_batch_size, 4,), dtype=K.floatx())
         batch_dist = np.empty((current_batch_size, 1,), dtype=K.floatx())
         batch_rot = np.empty((current_batch_size, 1,), dtype=K.floatx())

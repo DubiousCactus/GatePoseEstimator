@@ -52,10 +52,10 @@ class GateEstimator:
     '''
     @staticmethod
     def build_distance_branch(inputs, final_act='relu', chan_dim=-1):
-        x = Dense(128, activation='relu')(inputs)
-        x = Dense(64, activation='relu')(x)
+        x = Dense(64, activation='relu')(inputs)
+        x = Dense(32, activation='relu')(x)
         x = Dense(16, activation='relu')(x)
-        x = Dropout(0.5)(x)
+        # x = Dropout(0.5)(x)
         x = Dense(1)(x)
         x = Activation(final_act, name='distance_output')(x)
 

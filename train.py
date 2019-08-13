@@ -42,11 +42,11 @@ class Trainer:
             'rotation_output': 'mean_squared_error'
         }
         loss_weights = {
-            'distance_output': 0.5,
-            'rotation_output': 1.0
+            'distance_output': 1.0,
+            'rotation_output': .5
         }
         model.compile(optimizer=adam, loss=losses, loss_weights=loss_weights,
-                      metrics=['accuracy'])
+                      metrics=[])
 
         return model
 

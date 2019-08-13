@@ -1,0 +1,8 @@
+image_shape: [480, 640, 3] # H, W, C of the dataset images
+input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
+epochs: 100
+batch_size: 32
+training_dataset_root: '/home/theo/hybrid-dataset-factory/test/train_sets'
+validation_dataset_root: '/home/theo/hybrid-dataset-factory/test/val_sets'
+alpha: 0.5
+beta: 0.5
