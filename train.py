@@ -37,8 +37,7 @@ class Trainer:
         model = GatePoseEstimator.build(self.config['training_target'],
                                         self.config['input_shape'])
         adam = Adam()
-        model.compile(optimizer=adam, loss='mean_squared_error',
-                      metrics=['accuracy'])
+        model.compile(optimizer=adam, loss='mean_squared_error')
 
         return model
 

@@ -1,4 +1,4 @@
-training_target: 'distance'
+training_target: 'rotation'
 image_shape: [480, 640, 3] # H, W, C of the dataset images
 input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
 epochs: 100

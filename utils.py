@@ -133,8 +133,7 @@ class GatePoseDirectoryIterator(Iterator):
         return self._get_batches_of_transformed_samples(index_array)
 
     def _standardize_coordinates(self, coords):
-        return ((coords[0]-self.target_size[1])/self.target_size[1],
-                (coords[1]-self.target_size[0])/self.target_size[0])
+        return (coords[0]/self.target_size[1], coords[1]/self.target_size[0])
 
     def _get_batches_of_transformed_samples(self, index_array):
         '''
