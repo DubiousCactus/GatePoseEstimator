@@ -34,18 +34,11 @@ class Trainer:
         self.model = self._get_model()
 
     def _get_model(self):
-        model = GatePoseEstimator.build(self.config['input_shape'])
+        model = GatePoseEstimator.build(self.config['training_target'],
+                                        self.config['input_shape'])
         adam = Adam()
-        losses = {
-            'distance_output': 'mean_squared_error',
-            'rotation_output': 'mean_squared_error'
-        }
-        loss_weights = {
-            'distance_output': 1.0,
-            'rotation_output': .5
-        }
-        model.compile(optimizer=adam, loss=losses, loss_weights=loss_weights,
-                      metrics=[])
+        model.compile(optimizer=adam, loss='mean_squared_error',
+                      metrics=['accuracy'])
 
         return model
 
@@ -58,6 +51,7 @@ class Trainer:
             self.config['training_dataset_root'],
             self.config['image_shape'],
             self.config['input_shape'],
+            self.config['training_target'],
             self.config['batch_size'],
             shuffle=True,
             ground_truth_available=True)
@@ -67,6 +61,7 @@ class Trainer:
             self.config['validation_dataset_root'],
             self.config['image_shape'],
             self.config['input_shape'],
+            self.config['training_target'],
             self.config['batch_size'],
             shuffle=False,
             ground_truth_available=True)

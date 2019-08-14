@@ -28,13 +28,15 @@ class GatePoseGenerator(ImageDataGenerator):
     '''
     def flow_from_directory(self, directory, base_size=(480, 640, 3),
                             target_size=(225, 300, 1),
+                            training_target='distance',
                             batch_size=32, shuffle=True,
                             ground_truth_available=False):
         return GatePoseDirectoryIterator(self, directory=directory,
-                                     base_size=base_size,
-                                     target_size=target_size,
-                                     batch_size=batch_size, shuffle=shuffle,
-                                     ground_truth_available=ground_truth_available)
+                                         base_size=base_size,
+                                         target_size=target_size,
+                                         training_target=training_target,
+                                         batch_size=batch_size, shuffle=shuffle,
+                                         ground_truth_available=ground_truth_available)
 
 
 class GatePoseDirectoryIterator(Iterator):
@@ -53,11 +55,15 @@ class GatePoseDirectoryIterator(Iterator):
 
     '''
     def __init__(self, image_data_generator, directory, base_size, target_size,
-                 batch_size, shuffle, ground_truth_available=False):
+                 training_target, batch_size, shuffle,
+                 ground_truth_available=False):
         self.image_data_generator = image_data_generator
         self.directory = directory
         self.base_size = tuple(base_size)
         self.target_size = tuple(target_size)
+        if training_target not in ['distance', 'rotation']:
+            raise ValueError('Training target must be "distance" or "rotation"')
+        self.training_target = training_target
         self.batch_size = batch_size
         self.shuffle = shuffle
         if len(target_size) < 3 and target_size[2] not in [1, 3]:
@@ -126,6 +132,9 @@ class GatePoseDirectoryIterator(Iterator):
         # be done in parallel
         return self._get_batches_of_transformed_samples(index_array)
 
+    def _standardize_coordinates(self, coords):
+        return ((coords[0]-self.target_size[1])/self.target_size[1],
+                (coords[1]-self.target_size[0])/self.target_size[0])
 
     def _get_batches_of_transformed_samples(self, index_array):
         '''
@@ -150,6 +159,11 @@ class GatePoseDirectoryIterator(Iterator):
             x = img_utils.crop_and_pad(x, min_corner, max_corner)
             x = self.image_data_generator.random_transform(x)
             x = self.image_data_generator.standardize(x)
+            # Standardize the bounding box coordinates
+            min_corner = self._standardize_coordinates(min_corner)
+            max_corner = self._standardize_coordinates(max_corner)
+
+            # TODO: Standardize the rotation
 
             batch_x1[i] = x
             batch_x2[i] = np.array([
@@ -159,5 +173,7 @@ class GatePoseDirectoryIterator(Iterator):
             batch_dist[i] = self.labels[index_array[i]]['distance']
             batch_rot[i] = self.labels[index_array[i]]['rotation']
 
-        return ({'img_input': batch_x1, 'bbox_input': batch_x2},
-               {'distance_output': batch_dist, 'rotation_output': batch_rot})
+        if self.training_target == 'rotation':
+            return ({'img_input': batch_x1}, {'rotation_output': batch_rot})
+        else:
+            return ({'bbox_input': batch_x2}, {'distance_output': batch_dist})

@@ -64,15 +64,18 @@ class GatePoseEstimator:
         return x
 
     @staticmethod
-    def build(shape, final_act='relu'):
-        img_input = Input(shape=shape, name='img_input')
-        bbox_input = Input(shape=(4,), name='bbox_input')
-        distance_branch = GatePoseEstimator.build_distance_branch(bbox_input)
-        rotation_branch = GatePoseEstimator.build_rotation_branch(img_input)
+    def build(model, shape, final_act='relu'):
+        if model not in ['distance', 'rotation']:
+            raise ValueError('Model must be either "distance" or "rotation"')
+        if model == 'distance':
+            branch_input = Input(shape=(4,), name='bbox_input')
+            branch_output = GatePoseEstimator.build_distance_branch(branch_input)
+        else:
+            branch_input = Input(shape=shape, name='img_input')
+            branch_output = GatePoseEstimator.build_rotation_branch(branch_input)
 
-        model = Model(inputs=[img_input, bbox_input],
-                      outputs=[distance_branch, rotation_branch],
-                     name='GatePoseEstimator')
+        model = Model(inputs=branch_input, outputs=branch_output,
+                      name='GatePoseEstimator')
         print(model.summary())
 
         return model
