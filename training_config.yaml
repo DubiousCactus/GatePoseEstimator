@@ -1,6 +1,7 @@
 training_target: 'rotation'
 image_shape: [480, 640, 3] # H, W, C of the dataset images
-input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
+# input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
+input_shape: [480, 640, 3] # H, W, C of the desired input res for the network
 epochs: 100
 batch_size: 32
 training_dataset_root: '/gate_pose_dataset/training/'

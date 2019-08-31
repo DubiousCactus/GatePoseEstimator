@@ -10,16 +10,18 @@
 Training script for the gate distance and rotation estimator.
 """
 
+import os
 import yaml
 import models
 import argparse
 import numpy as np
 
+from keras_radam import RAdam
 from keras import backend as K
+from keras.optimizers import Adam
 from utils import GatePoseGenerator
 from models import GatePoseEstimator
-from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, ModelCheckpoint
 
 
 class Trainer:
@@ -36,8 +38,11 @@ class Trainer:
     def _get_model(self):
         model = GatePoseEstimator.build(self.config['training_target'],
                                         self.config['input_shape'])
-        adam = Adam()
-        model.compile(optimizer=adam, loss='mean_squared_error')
+        if self.config['training_target'] == 'distance':
+            model.compile(optimizer='adadelta', loss='mse')
+        else:
+            # radam = RAdam(total_steps=5000, warmup_proportion=0.1, min_lr=1e-5)
+            model.compile(optimizer=RAdam(lr=0.0001), loss='mse')
 
         return model
 
@@ -86,10 +91,17 @@ class Trainer:
         tensor_board = TensorBoard(log_dir=self.log_dir, histogram_freq=0,
                                    write_graph=True, write_images=True)
 
+        checkpoint = ModelCheckpoint(os.path.join(self.log_dir,
+                                                  "epoch-{epoch:02d}_loss-{loss:.4f}_val_loss-{val_loss:.4f}.h5"),
+                                     monitor='val_loss', verbose=1,
+                                     save_best_only=True,
+                                     save_weights_only=True)
+
         self.model.fit_generator(training_generator,
                                  epochs=self.config['epochs'],
                                  steps_per_epoch=steps_per_epoch,
                                  callbacks=[early_stopping,
+                                            checkpoint,
                                             reduce_learning_rate,
                                             tensor_board],
                                  validation_data=validation_generator,
