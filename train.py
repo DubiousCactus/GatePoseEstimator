@@ -12,6 +12,7 @@ Training script for the gate distance and rotation estimator.
 
 import os
 import yaml
+import json
 import models
 import argparse
 import numpy as np
@@ -58,6 +59,8 @@ class Trainer:
     def _get_model(self, transfer_weights=None, fine_tune=False):
         model = GatePoseEstimator.build(self.config['training_target'],
                                         self.config['input_shape'], fine_tune)
+        with open('model.json', 'w') as jsonfile:
+            json.dump(model.to_json(), jsonfile)
         if transfer_weights:
             print("[*] Transfering weights from '{}'".format(transfer_weights))
             model.load_weights(transfer_weights, by_name=True, skip_mismatch=True)

@@ -148,10 +148,10 @@ class GatePoseEstimator:
         return [rot, dist]
 
     @staticmethod
-    def build(model, shape, fine_tune):
-        # config = tf.ConfigProto()
-        # config.gpu_options.allow_growth = True
-        # tf.keras.backend.set_session(tf.Session(config=config))
+    def build(model, shape, fine_tune=False):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        tf.keras.backend.set_session(tf.Session(config=config))
         if model not in ['distance', 'rotation', 'combined']:
             raise ValueError('Model must be either "distance" or "rotation" or "combined"')
 

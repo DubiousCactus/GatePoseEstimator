@@ -154,12 +154,12 @@ class GatePoseDirectoryIterator(Iterator):
                                color_mode=self.color_mode)
             x = image.img_to_array(x)
             x = img_utils.crop_and_pad(x, min_corner, max_corner)
-            # TODO: Crop and pad, THEN resize to target size!
             x = self.image_data_generator.standardize(x)
 
             batch_x1[i] = x
             batch_dist[i] = self.labels[index_array[i]]['distance']
             batch_rot[i] = self.labels[index_array[i]]['rotation']/180.0
+
 
         if self.training_target == 'rotation':
             return ({'img_input': batch_x1}, {'rotation_output': batch_rot})
