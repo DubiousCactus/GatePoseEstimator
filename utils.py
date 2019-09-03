@@ -133,9 +133,6 @@ class GatePoseDirectoryIterator(Iterator):
         # be done in parallel
         return self._get_batches_of_transformed_samples(index_array)
 
-    def _standardize_coordinates(self, coords):
-        return (coords[0]/self.target_size[1], coords[1]/self.target_size[0])
-
     def _get_batches_of_transformed_samples(self, index_array):
         '''
         Fetches the next batch of images and labels, and applies
@@ -157,23 +154,17 @@ class GatePoseDirectoryIterator(Iterator):
                                color_mode=self.color_mode)
             x = image.img_to_array(x)
             x = img_utils.crop_and_pad(x, min_corner, max_corner)
+            # TODO: Crop and pad, THEN resize to target size!
             x = self.image_data_generator.standardize(x)
-            # Standardize the bounding box coordinates
-            min_corner = self._standardize_coordinates(min_corner)
-            max_corner = self._standardize_coordinates(max_corner)
 
             batch_x1[i] = x
-            batch_x2[i] = np.array([
-                min_corner[0], min_corner[1],
-                max_corner[0], max_corner[1]
-            ])
             batch_dist[i] = self.labels[index_array[i]]['distance']
-            batch_rot[i] = self.labels[index_array[i]]['rotation']
+            batch_rot[i] = self.labels[index_array[i]]['rotation']/180.0
 
         if self.training_target == 'rotation':
             return ({'img_input': batch_x1}, {'rotation_output': batch_rot})
         elif self.training_target == 'distance':
-            return ({'bbox_input': batch_x2}, {'distance_output': batch_dist})
+            return ({'img_input': batch_x1}, {'distance_output': batch_dist})
         else:
             return ({'img_input': batch_x1}, {'distance_output': batch_dist,
                                               'rotation_output': batch_rot})

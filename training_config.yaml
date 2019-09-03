@@ -1,10 +1,12 @@
-training_target: 'rotation'
-image_shape: [480, 640, 3] # H, W, C of the dataset images
+training_target: 'distance'
+image_shape: [225, 300, 3] # H, W, C of the dataset images
 # input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
-input_shape: [480, 640, 3] # H, W, C of the desired input res for the network
-epochs: 100
+input_shape: [225, 300, 1] # H, W, C of the desired input res for the network
+epochs: 500
+initial_epoch: 0
 batch_size: 32
 training_dataset_root: '/gate_pose_dataset/training/'
 validation_dataset_root: '/gate_pose_dataset/validation'
 alpha: 0.5
 beta: 0.5
+acc_threshold: 5 # Accuracy threshold for the rotation degrees

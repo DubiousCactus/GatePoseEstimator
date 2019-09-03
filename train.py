@@ -25,6 +25,11 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, Model
 
 
 class Trainer:
+    rot_acc_threshold = 0.03 # Difference threshold for the rotation accuracy
+                             # computation, in degrees
+    dist_acc_threshold = 0.25 # Difference threshold for the distance accuracy
+                              # computation, in meters
+
     def __init__(self, config):
         with open(config, 'r') as config_file:
             try:
@@ -33,24 +38,48 @@ class Trainer:
                 raise Exception(exc)
 
         self.log_dir = args.log_dir
-        self.model = self._get_model()
+        self.model = self._get_model(args.transfer_weights, args.fine_tune)
 
-    def _get_model(self):
+
+    @staticmethod
+    def rotation_accuracy(y_true, y_pred):
+        validate_el = lambda e: K.switch(np.abs(e[0]) < Trainer.rot_acc_threshold,
+                                         lambda : 1.0, lambda : 0.0)
+        valid_els = K.map_fn(validate_el, y_true - y_pred, name='accuracy')
+        return K.mean(valid_els)
+
+    @staticmethod
+    def distance_accuracy(y_true, y_pred):
+        validate_el = lambda e: K.switch(np.abs(e[0]) < Trainer.dist_acc_threshold,
+                                         lambda : 1.0, lambda : 0.0)
+        valid_els = K.map_fn(validate_el, y_true - y_pred, name='accuracy')
+        return K.mean(valid_els)
+
+    def _get_model(self, transfer_weights=None, fine_tune=False):
         model = GatePoseEstimator.build(self.config['training_target'],
-                                        self.config['input_shape'])
+                                        self.config['input_shape'], fine_tune)
+        if transfer_weights:
+            print("[*] Transfering weights from '{}'".format(transfer_weights))
+            model.load_weights(transfer_weights, by_name=True, skip_mismatch=True)
         if self.config['training_target'] == 'distance':
-            model.compile(optimizer='adadelta', loss='mse')
+            radam = RAdam()
+            # radam = RAdam(total_steps=10000, warmup_proportion=0.1, min_lr=1e-5)
+            model.compile(optimizer=radam, loss='mse',
+                          metrics=['mae', Trainer.distance_accuracy])
         else:
-            # radam = RAdam(total_steps=5000, warmup_proportion=0.1, min_lr=1e-5)
-            model.compile(optimizer=RAdam(lr=0.0001), loss='mse')
+            # radam = RAdam(total_steps=10000, warmup_proportion=0.1, min_lr=1e-5)
+            adam = Adam(lr=0.01)
+            model.compile(optimizer=adam, loss='mse',
+                          metrics=['mae', Trainer.rotation_accuracy])
 
         return model
 
     def train(self):
-        # TODO: Model restoring
-        initial_epoch = 0
+        initial_epoch = self.config['initial_epoch']
 
-        training_data_gen = GatePoseGenerator(rescale=1./255)
+        training_data_gen = GatePoseGenerator(rescale=1./255)#,
+                                              # rotation_range=20,
+                                              # channel_shift_range=0.5)
         training_generator = training_data_gen.flow_from_directory(
             self.config['training_dataset_root'],
             self.config['image_shape'],
@@ -77,7 +106,7 @@ class Trainer:
 
         early_stopping = EarlyStopping(monitor='val_loss',
                                        min_delta=0.0,
-                                       patience=10,
+                                       patience=20,
                                        verbose=1)
 
         reduce_learning_rate = ReduceLROnPlateau(monitor='loss',
@@ -100,14 +129,13 @@ class Trainer:
         self.model.fit_generator(training_generator,
                                  epochs=self.config['epochs'],
                                  steps_per_epoch=steps_per_epoch,
-                                 callbacks=[early_stopping,
+                                 callbacks=[#early_stopping,
                                             checkpoint,
                                             reduce_learning_rate,
                                             tensor_board],
                                  validation_data=validation_generator,
                                  validation_steps=validation_steps,
                                  initial_epoch=initial_epoch)
-
 
 
 if __name__ == '__main__':
@@ -118,6 +146,11 @@ if __name__ == '__main__':
                         file''', required=True)
     parser.add_argument('--log-dir', type=str, default='logs', help='''Path to
                         the logs directory file''')
+    parser.add_argument('--fine-tune', action='store_true', help='''Whether to
+                        freeze the feature extraction layers for fine-tuning of
+                        the fully connected layers''')
+    parser.add_argument('--transfer-weights', type=str, default=None,
+                        help='''Path to the weights file to transfer''')
     args = parser.parse_args()
     trainer = Trainer(args.config)
     trainer.train()
